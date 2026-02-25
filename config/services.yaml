@@ -21,3 +21,15 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    App\EventListener\ExceptionListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception }
+
+    App\Security\AuthenticationFailureHandler:
+        autowire: true
+
+    App\Security\AuthenticationSuccessHandler:
+        arguments:
+            $tokenTtl: 3600
+        autowire: true
