@@ -23,6 +23,9 @@ services:
     # please note that last definitions always *replace* previous ones
 
     App\EventListener\ExceptionListener:
+        arguments:
+            $environment: '%kernel.environment%'
+            $logger: '@logger'
         tags:
             - { name: kernel.event_listener, event: kernel.exception }
 

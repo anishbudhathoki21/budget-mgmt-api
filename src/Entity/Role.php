@@ -14,11 +14,11 @@ class Role
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read', 'budget:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 50, unique: true)]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read', 'budget:read'])]
     private ?string $name = null;
 
     /**

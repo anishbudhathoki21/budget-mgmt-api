@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -16,15 +18,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read', 'budget:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read', 'budget:read'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 100, unique: true)]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read', 'budget:read'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 255)]
@@ -34,6 +36,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['user:read'])]
     private ?Role $role = null;
+
+    /**
+     * @var Collection<int, Expense>
+     */
+    #[ORM\OneToMany(targetEntity: Expense::class, mappedBy: 'submittedBy')]
+    private Collection $submittedExpenses;
+
+    public function __construct()
+    {
+        $this->submittedExpenses = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -101,5 +114,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function eraseCredentials(): void
     {
 
+    }
+
+    /**
+     * @return Collection<int, Expense>
+     */
+    public function getSubmittedExpenses(): Collection
+    {
+        return $this->submittedExpenses;
+    }
+
+    public function addSubmittedExpense(Expense $expense): static
+    {
+        if (!$this->submittedExpenses->contains($expense)) {
+            $this->submittedExpenses->add($expense);
+            $expense->setSubmittedBy($this);
+        }
+        return $this;
+    }
+
+    public function removeSubmittedExpense(Expense $expense): static
+    {
+        if ($this->submittedExpenses->removeElement($expense)) {
+            if ($expense->getSubmittedBy() === $this) {
+                $expense->setSubmittedBy(null);
+            }
+        }
+        return $this;
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role && $this->role->getName() === 'MANAGER';
+    }
+
+    public function isEmployee(): bool
+    {
+        return $this->role && $this->role->getName() === 'EMPLOYEE';
     }
 }
