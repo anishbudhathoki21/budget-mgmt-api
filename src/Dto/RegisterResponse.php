@@ -9,6 +9,6 @@ class RegisterResponse
         public string $name,
         public string $email,
         public string $role,
-        public string $message = 'Registration successfulxx'
+        public string $message = 'Registration successful'
     ) {}
 }
