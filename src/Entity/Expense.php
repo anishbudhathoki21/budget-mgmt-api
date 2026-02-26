@@ -2,16 +2,19 @@
 
 namespace App\Entity;
 
-use App\Repository\ExpenseRepository;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use App\Dto\ApproveExpenseInput;
 use App\Dto\CreateExpenseInput;
 use App\Dto\UpdateExpenseInput;
-use App\State\ExpenseCollectionProvider;
+use App\Repository\ExpenseRepository;
+use App\State\ApproveExpenseProcessor;
 use App\State\CreateExpenseProcessor;
+use App\State\DeleteExpenseProcessor;
+use App\State\ExpenseCollectionProvider;
 use App\State\UpdateExpenseProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -26,6 +29,8 @@ use Symfony\Component\Validator\Constraints as Assert;
             uriTemplate: '/expenses',
             provider: ExpenseCollectionProvider::class,
             security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            paginationEnabled: true,
+            paginationItemsPerPage: 10,
             normalizationContext: ['groups' => ['expense:read']]
         ),
         new Get(
@@ -46,6 +51,21 @@ use Symfony\Component\Validator\Constraints as Assert;
             input: UpdateExpenseInput::class,
             processor: UpdateExpenseProcessor::class,
             security: "is_granted('EXPENSE_CANCEL', object)",
+            normalizationContext: ['groups' => ['expense:read']]
+        ),
+        new Patch(
+            uriTemplate: '/expenses/{id}/approve',
+            input: ApproveExpenseInput::class,
+            processor: ApproveExpenseProcessor::class,
+            security: "is_granted('EXPENSE_APPROVE', object)",
+            normalizationContext: ['groups' => ['expense:read']]
+        ),
+        new \ApiPlatform\Metadata\Delete(
+            uriTemplate: '/expenses/{id}',
+            processor: DeleteExpenseProcessor::class,
+            output: \App\Dto\DeleteExpenseOutput::class,
+            status: 200,
+            security: "is_granted('EXPENSE_CANCEL', object) or is_granted('IS_AUTHENTICATED_FULLY')",
             normalizationContext: ['groups' => ['expense:read']]
         )
     ]
@@ -108,6 +128,9 @@ class Expense
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['expense:read'])]
     private ?\DateTimeInterface $reviewedAt = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $deletedAt = null;
 
     public function __construct()
     {
@@ -264,5 +287,31 @@ class Expense
     public function canBeCancelled(): bool
     {
         return $this->isPending();
+    }
+
+    public function getDeletedAt(): ?\DateTimeInterface
+    {
+        return $this->deletedAt;
+    }
+
+    public function setDeletedAt(?\DateTimeInterface $deletedAt): static
+    {
+        $this->deletedAt = $deletedAt;
+        return $this;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deletedAt !== null;
+    }
+
+    public function delete(): void
+    {
+        $this->deletedAt = new \DateTime();
+    }
+
+    public function restore(): void
+    {
+        $this->deletedAt = null;
     }
 }

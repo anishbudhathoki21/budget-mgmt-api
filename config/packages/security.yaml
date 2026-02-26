@@ -33,4 +33,7 @@ security:
     access_control:
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
+        # allow unauthenticated users to view API documentation
+        - { path: ^/api/docs, roles: PUBLIC_ACCESS }
+        # everything else under /api requires a valid JWT
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

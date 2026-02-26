@@ -11,10 +11,12 @@ class ExpenseVoter extends Voter
 {
     public const VIEW = 'EXPENSE_VIEW';
     public const CANCEL = 'EXPENSE_CANCEL';
+    public const APPROVE = 'EXPENSE_APPROVE';
+    public const REJECT = 'EXPENSE_REJECT';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return in_array($attribute, [self::VIEW, self::CANCEL]) && $subject instanceof Expense;
+        return in_array($attribute, [self::VIEW, self::CANCEL, self::APPROVE, self::REJECT]) && $subject instanceof Expense;
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
@@ -30,6 +32,8 @@ class ExpenseVoter extends Voter
         return match ($attribute) {
             self::VIEW => $this->canView($expense, $user),
             self::CANCEL => $this->canCancel($expense, $user),
+            self::APPROVE => $this->canApprove($expense, $user),
+            self::REJECT => $this->canReject($expense, $user),
             default => false,
         };
     }
@@ -45,5 +49,15 @@ class ExpenseVoter extends Voter
     private function canCancel(Expense $expense, User $user): bool
     {
         return $expense->getSubmittedBy()?->getId() === $user->getId() && $expense->canBeCancelled();
+    }
+
+    private function canApprove(Expense $expense, User $user): bool
+    {
+        return $user->isManager() && $expense->isPending();
+    }
+
+    private function canReject(Expense $expense, User $user): bool
+    {
+        return $user->isManager() && $expense->isPending();
     }
 }
