@@ -5,30 +5,36 @@ namespace App\State;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Entity\Budget;
-use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\SecurityBundle\Security;
+use Doctrine\ORM\Tools\Pagination\Paginator;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class BudgetCollectionProvider implements ProviderInterface
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private Security $security
+        private RequestStack $requestStack
     ) {}
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
     {
-        /** @var User $user */
-        $user = $this->security->getUser();
-
         $qb = $this->entityManager->getRepository(Budget::class)->createQueryBuilder('b')
             ->leftJoin('b.department', 'd')
             ->leftJoin('b.createdBy', 'u')
+            ->addSelect('d')
+            ->addSelect('u')
             ->orderBy('b.createdAt', 'DESC');
 
-        // For now, all authenticated users can see all budgets
-        // In future: filter by department for employees when expense feature is added
+        // Get pagination parameters
+        $itemsPerPage = $operation->getPaginationItemsPerPage() ?? 10;
+        $request = $this->requestStack->getCurrentRequest();
+        $page = max(1, (int)($request?->query->get('page') ?? 1));
 
-        return $qb->getQuery()->getResult();
+        // Calculate offset
+        $offset = ($page - 1) * $itemsPerPage;
+        $qb->setFirstResult($offset)->setMaxResults($itemsPerPage);
+
+        // Use Doctrine Paginator for proper pagination support
+        return new Paginator($qb->getQuery(), false);
     }
 }

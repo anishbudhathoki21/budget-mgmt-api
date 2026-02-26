@@ -29,6 +29,8 @@ use Symfony\Component\Validator\Constraints as Assert;
             uriTemplate: '/budgets',
             provider: BudgetCollectionProvider::class,
             security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            paginationEnabled: true,
+            paginationItemsPerPage: 10,
             normalizationContext: ['groups' => ['budget:read']]
         ),
         new Get(
