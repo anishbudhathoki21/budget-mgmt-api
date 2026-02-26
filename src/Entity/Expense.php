@@ -3,12 +3,53 @@
 namespace App\Entity;
 
 use App\Repository\ExpenseRepository;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
+use App\Dto\CreateExpenseInput;
+use App\Dto\UpdateExpenseInput;
+use App\State\ExpenseCollectionProvider;
+use App\State\CreateExpenseProcessor;
+use App\State\UpdateExpenseProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ExpenseRepository::class)]
+#[ApiResource(
+    shortName: 'Expense',
+    operations: [
+        new GetCollection(
+            uriTemplate: '/expenses',
+            provider: ExpenseCollectionProvider::class,
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            normalizationContext: ['groups' => ['expense:read']]
+        ),
+        new Get(
+            uriTemplate: '/expenses/{id}',
+            security: "is_granted('EXPENSE_VIEW', object)",
+            normalizationContext: ['groups' => ['expense:read']]
+        ),
+        new Post(
+            uriTemplate: '/expenses',
+            input: CreateExpenseInput::class,
+            processor: CreateExpenseProcessor::class,
+            security: "is_granted('IS_AUTHENTICATED_FULLY')",
+            status: 201,
+            normalizationContext: ['groups' => ['expense:read']]
+        ),
+        new Patch(
+            uriTemplate: '/expenses/{id}',
+            input: UpdateExpenseInput::class,
+            processor: UpdateExpenseProcessor::class,
+            security: "is_granted('EXPENSE_CANCEL', object)",
+            normalizationContext: ['groups' => ['expense:read']]
+        )
+    ]
+)]
 class Expense
 {
     #[ORM\Id]
